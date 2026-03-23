@@ -369,8 +369,14 @@ const resetPass = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const { email, bio } = req.body;
-    const avatar = req.file?.filename; // ✅ store just filename like courses
-console.log("💾 File saved as:", req.file?.filename);
+let avatar;
+
+if (req.file) {
+  avatar = req.file.path; // ✅ new upload (Cloudinary)
+} else {
+  avatar = existingUser?.avatar || existingAdmin?.avatar; // ✅ keep old
+}
+    console.log("💾 File saved as:", req.file?.filename);
 
     if (!email) {
       return res.status(400).json({ success: false, message: "Email is required." });
