@@ -17,7 +17,7 @@ const baseUploadDir = process.env.RENDER === "true"
   ? "/mnt/data"
   : path.join(__dirname, "uploads");
 
-app.use("/uploads", express.static(baseUploadDir));
+// app.use("/uploads", express.static(baseUploadDir));
 
 app.use(express.static(path.join(__dirname, 'public')));
 

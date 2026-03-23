@@ -6,6 +6,7 @@ const courses = require("../models/courses");
 const McqBank= require("../models/McqBank");
 const faq= require("../models/faq");
 
+
 const LiveSession = require("../models/liveSessionsTime");
 const twilio = require('twilio');
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -607,8 +608,7 @@ const toggleDone = async (req, res) => {
 const addCourses=async(req,res)=>{
 try{
     const courseData = JSON.parse(req.body.courseData); // 📌 sent as FormData
-    const thumbnailFile = req.file?.filename; //  console.log(courseData.title)
-
+const thumbnailFile = req.file?.path;
 const findSameTitled=await courses.findOne({title:courseData.title})
 const addCourseToSirProfile = await admin.findOne({ adminUsername: courseData.instructor });
 
@@ -887,28 +887,28 @@ const createAnAnnouncement = async (req, res) => {
 const uploadVideo = async (req, res) => {
   try {
     const { title, courseName } = req.body;
-    const file = req.file; // uploaded video
+    const file = req.file;
 
     if (!file) {
       return res.status(400).json({ success: false, message: 'No video file provided.' });
     }
 
-    // Find the course by its title
     const findCourse = await courses.findOne({ title: courseName });
 
     if (!findCourse) {
       return res.status(404).json({ success: false, message: 'Course not found.' });
     }
 
-    // Push the new video filename to the course's videos array
     findCourse.videos.push({
-      title:title,
-      filename:file.filename});
+      title: title,
+      filename: file.path // 🔥 CLOUDINARY URL
+    });
+
     await findCourse.save();
 
     return res.status(200).json({
       success: true,
-      message: 'Video uploaded and added to course successfully!',
+      message: 'Video uploaded successfully!',
       file: findCourse.videos,
     });
 
