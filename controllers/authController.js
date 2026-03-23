@@ -894,6 +894,7 @@ const uploadVideo = async (req, res) => {
   try {
     const { title, courseName } = req.body;
     const file = req.file;
+const videoUrl = file.path.replace("/upload/", "/upload/f_auto,fl_streaming/");
 
     if (!file) {
       return res.status(400).json({ success: false, message: 'No video file provided.' });
@@ -907,7 +908,7 @@ const uploadVideo = async (req, res) => {
 
     findCourse.videos.push({
       title: title,
-      filename: file.path // 🔥 CLOUDINARY URL
+      filename: videoUrl// 🔥 CLOUDINARY URL
     });
 
     await findCourse.save();
