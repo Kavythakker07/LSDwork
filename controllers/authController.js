@@ -894,11 +894,16 @@ const uploadVideo = async (req, res) => {
   try {
     const { title, courseName } = req.body;
     const file = req.file;
-const videoUrl = file.path.replace("/upload/", "/upload/f_auto,fl_streaming/");
 
     if (!file) {
       return res.status(400).json({ success: false, message: 'No video file provided.' });
     }
+
+    // 🔥 PRODUCTION URL (stable)
+    const videoUrl = file.path.replace(
+      "/upload/",
+      "/upload/f_mp4,q_auto,vc_auto/"
+    );
 
     const findCourse = await courses.findOne({ title: courseName });
 
@@ -908,7 +913,7 @@ const videoUrl = file.path.replace("/upload/", "/upload/f_auto,fl_streaming/");
 
     findCourse.videos.push({
       title: title,
-      filename: videoUrl// 🔥 CLOUDINARY URL
+      filename: videoUrl
     });
 
     await findCourse.save();
