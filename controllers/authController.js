@@ -1,3 +1,5 @@
+const cloudinary = require("cloudinary").v2;
+
 const jwt = require("jsonwebtoken");
 const bcrypt = require('bcryptjs');
 const user = require("../models/users");
@@ -889,7 +891,33 @@ const createAnAnnouncement = async (req, res) => {
   }
 };
 
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_API_KEY,
+  api_secret: process.env.CLOUD_API_SECRET,
+});
 
+module.exports.getSignature = async (req, res) => {
+  try {
+    const timestamp = Math.round(new Date().getTime() / 1000);
+
+    const signature = cloudinary.utils.api_sign_request(
+      { timestamp },
+      process.env.CLOUD_API_SECRET
+    );
+
+    res.json({
+      timestamp,
+      signature,
+      cloudName: process.env.CLOUD_NAME,
+      apiKey: process.env.CLOUD_API_KEY,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Signature error" });
+  }
+};
 const uploadVideo = async (req, res) => {
   try {
     const { title, courseName, videoUrl } = req.body;
