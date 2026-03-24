@@ -892,41 +892,48 @@ const createAnAnnouncement = async (req, res) => {
 
 const uploadVideo = async (req, res) => {
   try {
-    const { title, courseName } = req.body;
-    const file = req.file;
+    const { title, courseName, videoUrl } = req.body;
 
-    if (!file) {
-      return res.status(400).json({ success: false, message: 'No video file provided.' });
+    if (!videoUrl) {
+      return res.status(400).json({
+        success: false,
+        message: "No video URL provided",
+      });
     }
-
-    // 🔥 PRODUCTION URL (stable)
-    const videoUrl = file.path.replace(
-      "/upload/",
-      "/upload/f_mp4,q_auto,vc_auto/"
-    );
 
     const findCourse = await courses.findOne({ title: courseName });
 
     if (!findCourse) {
-      return res.status(404).json({ success: false, message: 'Course not found.' });
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
     }
+
+    // 🔥 OPTIMIZED STREAM URL
+    const finalUrl = videoUrl.replace(
+      "/upload/",
+      "/upload/f_mp4,q_auto,vc_auto/"
+    );
 
     findCourse.videos.push({
       title: title,
-      filename: videoUrl
+      filename: finalUrl,
     });
 
     await findCourse.save();
 
     return res.status(200).json({
       success: true,
-      message: 'Video uploaded successfully!',
-      file: findCourse.videos,
+      message: "Video saved successfully",
     });
 
   } catch (err) {
-    console.error('Upload error:', err);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Upload error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
 
