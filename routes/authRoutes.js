@@ -3,7 +3,7 @@ const express = require("express");
 
 const upload = require("../middleware/upload");
 
-const {sendResetOTP, verifyResetOTP,registerUser,verifyOTPAndRegister,loginUser,resetPass,updateProfile,addTask,getSchedule ,deleteTask,toggleDone,addCourses,buyCourse,getUserCourses,getAllCourses,getAllComments,getCommentsReplies,currentSelectedCourse,createAnAnnouncement,uploadVideo,videoOrder,mcqAns,setMcq,getMcq,selectedCourseforDelete,createLiveSessions,getLiveSessions,getAllAnnouncements,faq,comments,addReply,addFaq, getFaq} = require("../controllers/authController"); // ✅ Correct Import
+const {getSignature,sendResetOTP, verifyResetOTP,registerUser,verifyOTPAndRegister,loginUser,resetPass,updateProfile,addTask,getSchedule ,deleteTask,toggleDone,addCourses,buyCourse,getUserCourses,getAllCourses,getAllComments,getCommentsReplies,currentSelectedCourse,createAnAnnouncement,uploadVideo,videoOrder,mcqAns,setMcq,getMcq,selectedCourseforDelete,createLiveSessions,getLiveSessions,getAllAnnouncements,faq,comments,addReply,addFaq, getFaq} = require("../controllers/authController"); // ✅ Correct Import
 
 const router = express.Router();
 // const authCtrl = require("../controllers/authController");
@@ -92,7 +92,7 @@ router.get("/getFaq",getFaq)
 router.post("/reply", addReply);
 router.post("/faq", addFaq);
 
-
+router.get("/cloudinary-signature", getSignature);
 
 
 
