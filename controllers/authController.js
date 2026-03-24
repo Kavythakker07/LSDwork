@@ -933,7 +933,6 @@ const uploadVideo = async (req, res) => {
 const videoOrder = async (req, res) => {
   try {
     const { current, courseName, order } = req.body;
-
     const findCourse = await courses.findOne({ title: courseName });
     if (!findCourse) {
       return res.status(404).json({ message: 'Course not found' });
@@ -941,7 +940,7 @@ const videoOrder = async (req, res) => {
 
     const videos = findCourse.videos;
 
-    const currentIndex = videos.findIndex(v => v.filename === current);
+    const currentIndex = videos.findIndex(v => v.filename.includes(current.split("/").pop()));
     if (currentIndex === -1) {
       return res.status(400).json({ message: 'Current video not found in course' });
     }
@@ -972,6 +971,7 @@ const videoOrder = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 
 
