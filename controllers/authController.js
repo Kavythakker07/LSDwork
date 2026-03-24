@@ -897,7 +897,7 @@ cloudinary.config({
   api_secret: process.env.CLOUD_API_SECRET,
 });
 
-module.exports.getSignature = async (req, res) => {
+const getSignature = async (req, res) => {
   try {
     const timestamp = Math.round(new Date().getTime() / 1000);
 
@@ -1452,6 +1452,7 @@ module.exports = {
     addReply,
     getAllComments,
     getCommentsReplies,
-    addFaq
+    addFaq,
+  getSignature
 
 };
