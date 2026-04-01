@@ -1,5 +1,5 @@
-const cloudinary = require("cloudinary").v2;
 
+const cloudinary = require("cloudinary").v2;
 const jwt = require("jsonwebtoken");
 const bcrypt = require('bcryptjs');
 const user = require("../models/users");
@@ -94,7 +94,7 @@ if (existingUserName) {
     };
 const msgForMobileOtp = await client.messages.create({
             from: process.env.TWILIO_NUMBER,
-            to: `+91${phoneNumber}`,
+            to: `whatsapp:+91${phoneNumber}`,
             body: `Your OTP is : ${otp2}`,
           });
     console.log('✅ OTP Message sent to:', phoneNumber);
@@ -377,8 +377,7 @@ if (req.file) {
   avatar = req.file.path; // ✅ new upload (Cloudinary)
 } else {
   avatar = existingUser?.avatar || existingAdmin?.avatar; // ✅ keep old
-}
-    console.log("💾 File saved as:", req.file?.filename);
+}console.log("💾 File saved as:", avatar);
 
     if (!email) {
       return res.status(400).json({ success: false, message: "Email is required." });
@@ -871,7 +870,7 @@ const createAnAnnouncement = async (req, res) => {
         try {
           const msg = await client.messages.create({
             from: process.env.TWILIO_NUMBER,
-            to: `+91${u.phoneNumber}`,
+            to: `whatsapp:+91${u.phoneNumber}`,
             body: `📢 Announcement:\nTitle: ${title}\n${description ? `Details: ${description}` : ''}`,
           });
           console.log(`✅ WhatsApp sent to ${u.phoneNumber}: ${msg.sid}`);
@@ -890,6 +889,7 @@ const createAnAnnouncement = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
@@ -1006,7 +1006,6 @@ const videoOrder = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
-
 
 
 
@@ -1222,7 +1221,7 @@ const createLiveSessions = async (req, res) => {
         try {
           const response = await client.messages.create({
             from: process.env.TWILIO_NUMBER,
-            to: `+91${u.phoneNumber}`,
+            to: `whatsapp:+91${u.phoneNumber}`,
             body: `📢 Live Session Scheduled!\nCourse: ${courseName}\nTitle: ${title}\nTime: ${formattedTime}`,
           });
           console.log(`✅ WhatsApp sent to ${u.phoneNumber}: ${response.sid}`);
@@ -1453,6 +1452,6 @@ module.exports = {
     getAllComments,
     getCommentsReplies,
     addFaq,
-  getSignature
+    getSignature
 
 };
