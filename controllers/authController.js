@@ -204,11 +204,11 @@ res.status(200).json({
 /**
  * Login User
  */
+
+
 const loginUser = async (req, res) => {
   try {
     const { email, password, currentAppVersionActual } = req.body;
-
-    console.log(email, password, currentAppVersionActual)
 
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password required." });
@@ -217,35 +217,51 @@ const loginUser = async (req, res) => {
     const existingUser = await user.findOne({ email });
     const existingAdmin = await admin.findOne({ email });
 
+    // ✅ USER LOGIN
     if (existingUser) {
       const isPasswordValid = await bcrypt.compare(password, existingUser.password);
       if (!isPasswordValid) {
-        return res.status(401).json({ message: "Invalid password or email is wrong." });
+        return res.status(401).json({ message: "Invalid password or email." });
       }
 
-      // ✅ Update current version
       existingUser.currentVersion = currentAppVersionActual;
       await existingUser.save();
+
+      // 🔥 CREATE TOKEN
+      const token = jwt.sign(
+        { id: existingUser._id, email: existingUser.email },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
 
       return res.status(200).json({
         message: "Login successful!",
         user: existingUser,
+        token: token // 🔥 IMPORTANT
       });
     }
 
+    // ✅ ADMIN LOGIN
     if (existingAdmin) {
-      const isPasswordValidForAdmin = await bcrypt.compare(password, existingAdmin.password);
-      // if (!isPasswordValidForAdmin) {
-      //   return res.status(401).json({ message: "Invalid password or email is wrong." });
-      // }
+      const isPasswordValid = await bcrypt.compare(password, existingAdmin.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Invalid password or email." });
+      }
 
-      // ✅ Update current version
       existingAdmin.currentVersion = currentAppVersionActual;
       await existingAdmin.save();
+
+      // 🔥 CREATE TOKEN
+      const token = jwt.sign(
+        { id: existingAdmin._id, email: existingAdmin.email },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
 
       return res.status(200).json({
         message: "Login successful for admin!",
         admin: existingAdmin,
+        token: token // 🔥 IMPORTANT
       });
     }
 
