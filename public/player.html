@@ -107,6 +107,17 @@
 
     #skip-left { left: 20%; }
     #skip-right { right: 20%; }
+    .vjs-next-button {
+  font-size: 18px;
+  margin: 0 6px;
+}
+.vjs-control-bar {
+  font-size: 1.4em;
+}
+
+.vjs-control {
+  margin: 0 6px;
+}
   </style>
 </head>
 
@@ -133,159 +144,190 @@
   </div>
 
   <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const filename = params.get('video');
-    const courseName = params.get('courseName');
+<script>
+const params = new URLSearchParams(window.location.search);
+let video = params.get('video');
+const courseName = params.get('courseName');
 
-    const src = document.getElementById('videoSource');
-    if (!filename) {
-      alert('⚠️ No video provided');
-      throw new Error('No video specified');
-    }
-    src.src = `/uploads/videos/${filename.endsWith('.mp4') ? filename : filename + '.mp4'}`;
+if (!video) throw new Error("No video");
 
-    const player = videojs('player', {
-      controlBar: {
-        children: [
-          'playToggle',
-          'progressControl',
-          'currentTimeDisplay',
-          'timeDivider',
-          'durationDisplay',
-          'volumePanel',
-          'fullscreenToggle'
-        ]
-      }
+// 🔥 FIX STREAMING URL
+video = video.replace("/upload/", "/upload/f_auto,q_auto,fl_streaming/");
+
+document.getElementById("videoSource").src = video;
+
+const player = videojs('player');
+
+// 🔥 ROTATE
+function forceRotate() {
+  const el = player.el();
+
+  if (el.requestFullscreen) el.requestFullscreen();
+
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock("landscape").catch(() => {});
+  }
+}
+
+// 🔥 MODALS
+function showModal(id) {
+  document.getElementById(id).style.display = "flex";
+}
+function closeModal(id) {
+  document.getElementById(id).style.display = "none";
+}
+
+// 🔥 FETCH NEXT/PREV
+async function getVideo(order) {
+  try {
+    const res = await fetch('/api/auth/next_prev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current: video, courseName, order })
     });
 
-    const skipLeftIcon = document.getElementById('skip-left');
-    const skipRightIcon = document.getElementById('skip-right');
+    const data = await res.json();
 
-    function showSkipIcon(icon) {
-      icon.style.display = 'block';
-      setTimeout(() => { icon.style.display = 'none'; }, 500);
-    }
-
-    function showModal(id) {
-      document.getElementById(id).style.display = 'flex';
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).style.display = 'none';
-      enterFullscreenAndRotate(); // optional: go fullscreen again
-    }
-
-    function exitFullscreenIfActive() {
-      if (document.fullscreenElement || document.webkitFullscreenElement) {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        }
-      }
-    }
-
-    function enterFullscreenAndRotate() {
-      const vid = player.el();
-      if (vid.requestFullscreen) {
-        vid.requestFullscreen();
-      } else if (vid.webkitRequestFullscreen) {
-        vid.webkitRequestFullscreen();
-      }
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock("landscape").catch(() => {});
-      }
-    }
-
-    player.ready(() => {
-      player.play();
-
-      const cb = player.getChild('controlBar');
-      const idx = cb.children_.findIndex(c => c.name_ === 'playToggle');
-
-      const backBtn = videojs.dom.createEl('button', {
-        className: 'vjs-next-button vjs-control',
-        innerHTML: '⏮',
-        title: 'Previous Video'
-      });
-
-      const nextBtn = videojs.dom.createEl('button', {
-        className: 'vjs-next-button vjs-control',
-        innerHTML: '⏭',
-        title: 'Next Video'
-      });
-
-      backBtn.onclick = async () => {
-        player.pause();
-        try {
-          const res = await fetch('/api/auth/next_prev', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ current: filename, courseName, order: "prev" }),
-          });
-          const data = await res.json();
-          if (data.previous) {
-            window.location.href = `?video=${data.previous}&courseName=${courseName}`;
-          } else {
-            exitFullscreenIfActive();
-            showModal('noPrevModal');
-          }
-        } catch (err) {
-          console.error('Error fetching previous video:', err);
-        }
-      };
-
-      nextBtn.onclick = async () => {
-        player.pause();
-        try {
-          const res = await fetch('/api/auth/next_prev', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ current: filename, courseName, order: "next" }),
-          });
-          const data = await res.json();
-          if (data.next) {
-            window.location.href = `?video=${data.next}&courseName=${courseName}`;
-          } else {
-            exitFullscreenIfActive();
-            showModal('noNextModal');
-          }
-        } catch (err) {
-          console.error('Error fetching next video:', err);
-        }
-      };
-
-      cb.el().insertBefore(backBtn, cb.children_[idx + 1].el_);
-      cb.el().insertBefore(nextBtn, cb.children_[idx + 1].el_);
-
-      // Auto enter fullscreen on play
-      player.on('play', () => {
-        enterFullscreenAndRotate();
-      });
-    });
-
-    // Double-tap skip
-    let lastLeft = 0, lastRight = 0;
-    player.el().addEventListener('touchstart', e => {
-      const x = e.touches[0].clientX;
-      const w = window.innerWidth;
-      const now = Date.now();
-
-      if (x < w / 2) {
-        if (now - lastLeft < 400) {
-          player.currentTime(player.currentTime() - 10);
-          showSkipIcon(skipLeftIcon);
-        }
-        lastLeft = now;
+    if (order === "next") {
+      if (data.next) {
+        window.location.href = `?video=${data.next}&courseName=${courseName}`;
       } else {
-        if (now - lastRight < 400) {
-          player.currentTime(player.currentTime() + 10);
-          showSkipIcon(skipRightIcon);
-        }
-        lastRight = now;
+        showModal("noNextModal"); // ✅ clean UI
       }
+    }
+
+    if (order === "prev") {
+      if (data.previous) {
+        window.location.href = `?video=${data.previous}&courseName=${courseName}`;
+      } else {
+        showModal("noPrevModal"); // ✅ clean UI
+      }
+    }
+
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// 🔥 ADD BUTTONS (FIXED WAY)
+player.ready(() => {
+  const Button = videojs.getComponent('Button');
+
+  // PREV
+  const PrevButton = videojs.extend(Button, {
+    constructor: function() {
+      Button.apply(this, arguments);
+      this.controlText("Previous");
+      this.el().innerHTML = "⏮";
+    },
+    handleClick: function() {
+      getVideo("prev");
+    }
+  });
+
+  // NEXT
+  const NextButton = videojs.extend(Button, {
+    constructor: function() {
+      Button.apply(this, arguments);
+      this.controlText("Next");
+      this.el().innerHTML = "⏭";
+    },
+    handleClick: function() {
+      getVideo("next");
+    }
+  });
+
+  // ROTATE
+  const RotateButton = videojs.extend(Button, {
+    constructor: function() {
+      Button.apply(this, arguments);
+      this.controlText("Rotate");
+      this.el().innerHTML = "🔄";
+    },
+    handleClick: function() {
+      forceRotate();
+    }
+  });
+
+  videojs.registerComponent('PrevButton', PrevButton);
+  videojs.registerComponent('NextButton', NextButton);
+  videojs.registerComponent('RotateButton', RotateButton);
+
+  player.getChild('controlBar').addChild('PrevButton', {}, 0);
+  player.getChild('controlBar').addChild('NextButton', {}, 1);
+  player.getChild('controlBar').addChild('RotateButton', {}, 2);
+
+  player.on('play', forceRotate);
+});
+
+// 🔥 DOUBLE TAP SKIP + VISUAL
+let lastTap = 0;
+
+player.el().addEventListener("touchstart", (e) => {
+  const now = Date.now();
+  const x = e.touches[0].clientX;
+  const width = window.innerWidth;
+
+  if (now - lastTap < 300) {
+    if (x < width / 2) {
+      player.currentTime(player.currentTime() - 10);
+      showSkip("left");
+    } else {
+      player.currentTime(player.currentTime() + 10);
+      showSkip("right");
+    }
+  }
+
+  lastTap = now;
+});
+
+function showSkip(side) {
+  const el = document.getElementById(`skip-${side}`);
+  el.style.display = "block";
+  setTimeout(() => el.style.display = "none", 500);
+}
+
+// 🔥 AUTO NEXT (NETFLIX STYLE)
+player.on('ended', async () => {
+  try {
+    const res = await fetch('/api/auth/next_prev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current: video, courseName, order: "next" })
     });
-  </script>
+
+    const data = await res.json();
+
+    if (data.next) {
+      const modal = document.createElement("div");
+      modal.style = `
+        position:absolute;
+        bottom:20%;
+        left:50%;
+        transform:translateX(-50%);
+        background:rgba(0,0,0,0.8);
+        padding:20px;
+        color:white;
+        border-radius:10px;
+        z-index:9999;
+      `;
+      modal.innerHTML = `
+        <p>Next video in 5s...</p>
+        <button onclick="window.location.href='?video=${data.next}&courseName=${courseName}'">Play Now</button>
+      `;
+      document.body.appendChild(modal);
+
+      setTimeout(() => {
+        window.location.href = `?video=${data.next}&courseName=${courseName}`;
+      }, 5000);
+    } else {
+      showModal("noNextModal");
+    }
+
+  } catch (e) {
+    console.error(e);
+  }
+});
+</script>
 </body>
 </html>
