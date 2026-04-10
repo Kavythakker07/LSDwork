@@ -102,7 +102,7 @@ const msgForMobileOtp = await client.messages.create({
     await transporter.sendMail(mailOptions);
     console.log('✅ OTP Email sent to:', email);
 
-    return res.status(200).json({ success:true,message: 'OTP sent to your email and whatsapp.' });
+    return res.status(200).json({ success:true,message: 'OTP sent to your email.' });
     
 
   } catch (error) {
@@ -132,9 +132,9 @@ const verifyOTPAndRegister = async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP Email." });
     }
 
-    if (otp2.toString() !== mobileOTP.toString()) {
-      return res.status(400).json({ message: `Invalid OTP Mobile` });
-    }
+    // if (otp2.toString() !== mobileOTP.toString()) {
+    //   return res.status(400).json({ message: `Invalid OTP Mobile` });
+    // }
     const adminPass=process.env.adminPass
 const isPasswordValid = bcrypt.compare(adminPass, hashedPassword);
 
@@ -255,7 +255,7 @@ const loginUser = async (req, res) => {
       const token = jwt.sign(
         { id: existingAdmin._id, email: existingAdmin.email },
         process.env.JWT_SECRET,
-        { expiresIn: "7d" }
+        { expiresIn: "30d" }
       );
 
       return res.status(200).json({
@@ -1391,7 +1391,8 @@ const addReply = async (req, res) => {
     const video = course.videos.find(v => v.title === videoName);
     if (!video) return res.status(404).json({ message: "Video not found" });
 
-    if (!video.comments[commentIndex]) return res.status(404).json({ message: "Comment not found" });
+    const commentIndex = video.comments.findIndex(c => c._id.toString() === commentId);
+    if (commentIndex === -1) return res.status(404).json({ message: "Comment not found" });
 
     const reply = {
       user,
