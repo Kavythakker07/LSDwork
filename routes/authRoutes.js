@@ -151,7 +151,7 @@ router.post("/verifyPayment",verifyToken, async (req, res) => {
  router.get("/getAllCourses", getAllCourses);
  router.get('/version', (req, res) => {
   // return res.json({ requiredVersion: process.env.EXPO_PUBLIC_REQ_VERSION || '1.0.0' });
-  return res.json({ requiredVersion:   '1.0.0' });
+  return res.json({ requiredVersion:   process.env.EXPO_PUBLIC_REQ_VERSION || '1.0.0' });
 
 });
  router.post("/getComments", getAllComments);
