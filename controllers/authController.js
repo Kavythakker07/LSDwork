@@ -16,7 +16,8 @@ const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TO
 const path = require("path");
 const Announcement = require('../models/announcement');
 
-
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 const nodemailer = require('nodemailer');
 const { log } = require("console");
 
@@ -25,89 +26,104 @@ const otpStore = new Map(); // key: email, value: { otp, username?, hashedPasswo
 /**
  * Register User (send OTP and temporarily store hashed password + username)
  */
+
+
 const registerUser = async (req, res) => {
   try {
-    const { email, pass, username,phoneNumber } = req.body;
+    const { email, pass, username } = req.body;
 
-    if (!email || !pass || !username||!phoneNumber) {
-      return res.status(400).json({success:false, message: "All fields are required." });
-    }
-     if (username.length < 4) {
-      return res.status(400).json({success:false, message: "Username must be at least 4 characters." });
-    }
-    if (!/^\d{10}$/.test(phoneNumber)) {
-  return res.status(400).json({ success: false, message: "Phone number must be 10 digits." });
-}
+    console.log("📥 Register request:", email, username);
 
+    // ✅ VALIDATIONS
+    if (!email || !pass || !username) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required.",
+      });
+    }
+
+    if (username.length < 4) {
+      return res.status(400).json({
+        success: false,
+        message: "Username must be at least 4 characters.",
+      });
+    }
 
     if (pass.length < 8) {
-      return res.status(400).json({ success:false,message: "Password must be at least 8 characters." });
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters.",
+      });
     }
-   
 
     if (email.toLowerCase() === username.toLowerCase()) {
-      return res.status(400).json({ success:false,message: "Email and username cannot be the same." });
+      return res.status(400).json({
+        success: false,
+        message: "Email and username cannot be the same.",
+      });
     }
 
+    // ✅ CHECK EXISTING
     const existingUser = await user.findOne({ email });
     const existingUserName = await user.findOne({ username });
 
-    const existingUserPhoneNumber = await user.findOne({ phoneNumber });
-      if (existingUserPhoneNumber) {
-      return res.status(409).json({ success:false,message: "Phone number is already registered." });
+    if (existingUserName) {
+      return res.status(409).json({
+        success: false,
+        message: "Username already registered.",
+      });
     }
-if (existingUserName) {
-      return res.status(409).json({ success:false,message: "Name already registered." });
-    }
-    if (existingUser) {
-      return res.status(409).json({ success:false,message: "Email already registered." });
-    }
-     
-  
 
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already registered.",
+      });
+    }
+
+    // ✅ CREATE OTP + HASH
     const hashedPassword = await bcrypt.hash(pass, 10);
     const otp = Math.floor(100000 + Math.random() * 900000);
-    const otp2 = Math.floor(100000 + Math.random() * 900000);
 
-
+    // ✅ STORE OTP
     otpStore.set(email, {
       otp,
-      otp2,
       username,
       hashedPassword,
       timestamp: Date.now(),
     });
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: "thakkerkavy8@gmail.com",
-        pass: "unrn incr crfm bagy", // ⚠️ Use env var in production!
-      },
-    });
+    console.log("🔐 OTP:", otp);
 
-    const mailOptions = {
-      from: "Life Skills Dynamics <thakkerkavy8@gmail.com>",
+    // ✅ SEND EMAIL (RESEND)
+    await resend.emails.send({
+      from: 'LSD <noreply@lsdpro.in>', // 🔥 CHANGE THIS
       to: email,
       subject: 'Your OTP for LSD Registration',
-      text: `Hey ${username},\n\nYour OTP is: ${otp}\nValid for 5 minutes.\n\nTeam TOG`,
-    };
-const msgForMobileOtp = await client.messages.create({
-            from: process.env.TWILIO_NUMBER,
-            to: `whatsapp:+91${phoneNumber}`,
-            body: `Your OTP is : ${otp2}`,
-          });
-    console.log('✅ OTP Message sent to:', phoneNumber);
+      html: `
+        <h2>Hello ${username}</h2>
+        <p>Your OTP is:</p>
+        <h1>${otp}</h1>
+        <p>This OTP is valid for 5 minutes.</p>
+        <br/>
+        <p>Team LSD 🚀</p>
+      `,
+    });
 
-    await transporter.sendMail(mailOptions);
-    console.log('✅ OTP Email sent to:', email);
+    console.log("✅ Email sent:", email);
 
-    return res.status(200).json({ success:true,message: 'OTP sent to your email.' });
-    
+    return res.status(200).json({
+      success: true,
+      message: "OTP sent to your email.",
+    });
 
   } catch (error) {
     console.error("❌ Error in registerUser:", error);
-    return res.status(500).json({ message: "Internal server error" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
@@ -135,11 +151,11 @@ const verifyOTPAndRegister = async (req, res) => {
     // if (otp2.toString() !== mobileOTP.toString()) {
     //   return res.status(400).json({ message: `Invalid OTP Mobile` });
     // }
-    const adminPass=process.env.adminPass
+    const adminPass=process.env.ADMIN_PASS
 const isPasswordValid = bcrypt.compare(adminPass, hashedPassword);
 
 if(!isPasswordValid){
-  res.status(404).json({message:process.env.adminPass+hashedPassword})
+  res.status(404).json({message:process.env.ADMIN_PASS+hashedPassword})
 }
 if(username==="DPDS"&&isPasswordValid){
 console.log("as admin")
@@ -200,7 +216,35 @@ res.status(200).json({
     return res.status(500).json({ message: "error",error });
   }
 };
+const resendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
 
+    const data = otpStore.get(email);
+
+    if (!data) {
+      return res.status(400).json({ success: false, message: "No OTP found" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000);
+
+    data.otp = otp;
+    data.timestamp = Date.now();
+
+    await resend.emails.send({
+      from: "LSD <noreply@lsdpro.in>",
+      to: email,
+      subject: "Resent OTP",
+      html: `<h2>Your new OTP: ${otp}</h2>`,
+    });
+
+    return res.json({ success: true, message: "OTP resent" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+};
 /**
  * Login User
  */
@@ -279,6 +323,8 @@ const loginUser = async (req, res) => {
 const sendResetOTP = async (req, res) => {
   try {
     const { email } = req.body;
+
+    console.log("📥 Reset OTP request for:", email);
     const existingUser = await user.findOne({ email });
 
     if (!existingUser) return res.status(404).json({ message: "User not found." });
@@ -286,23 +332,22 @@ const sendResetOTP = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000);
 
     otpStore.set(email, { otp, timestamp: Date.now() });
-
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: "thakkerkavy8@gmail.com",
-        pass: "unrn incr crfm bagy",
-      },
+console.log("🔐 Reset OTP:", otp);
+  await resend.emails.send({
+      from: 'LSD <noreply@lsdpro.in>', // 🔥 CHANGE THIS
+      to: email,
+      subject: 'Your OTP for LSD Registration',
+      html: `
+        <h2>Hello ${existingUser.username}</h2>
+        <p>Your OTP is:</p>
+        <h1>${otp}</h1>
+        <p>This OTP is valid for 5 minutes.</p>
+        <br/>
+        <p>Team LSD 🚀</p>
+      `,
     });
 
-    const mailOptions = {
-      from: "Life Skills Dynamics <thakkerkavy8@gmail.com>",
-      to: email,
-      subject: 'Your OTP for Password Reset',
-      text: `Your OTP for password reset is: ${otp}\nIt is valid for 5 minutes.`,
-    };
-
-    await transporter.sendMail(mailOptions);
+    // await transporter.sendMail(mailOptions);
     console.log(`🔐 OTP for ${email}: ${otp}`);
 
     return res.status(200).json({ message: "OTP sent to your email." });
@@ -1438,7 +1483,7 @@ const getFaq = async (req, res) => {
 };
 module.exports = {
   registerUser,
-  verifyOTPAndRegister,
+  verifyOTPAndRegister,resendOTP,
   loginUser,
   sendResetOTP,
   verifyResetOTP,
