@@ -3,7 +3,7 @@ const express = require("express");
 
 const upload = require("../middleware/upload");
 
-const {sendResetOTP, verifyResetOTP,registerUser,verifyOTPAndRegister,loginUser,resetPass,updateProfile,addTask,getSchedule ,deleteTask,toggleDone,addCourses,buyCourse,getUserCourses,getAllCourses,getAllComments,getCommentsReplies,currentSelectedCourse,createAnAnnouncement,uploadVideo,videoOrder,mcqAns,setMcq,getMcq,selectedCourseforDelete,createLiveSessions,getLiveSessions,getAllAnnouncements,getSignature,comments,addReply,addFaq, getFaq} = require("../controllers/authController"); // ✅ Correct Import
+const {sendResetOTP, verifyResetOTP,registerUser,verifyOTPAndRegister,loginUser,resetPass,updateProfile,addTask,getSchedule ,deleteTask,toggleDone,addCourses,buyCourse,getUserCourses,getAllCourses,getAllComments,getCommentsReplies,currentSelectedCourse,createAnAnnouncement,uploadVideo,videoOrder,mcqAns,setMcq,getMcq,selectedCourseforDelete,createLiveSessions,getLiveSessions,getAllAnnouncements,getSignature,comments,addReply,addFaq, getFaq, resendOTP} = require("../controllers/authController"); // ✅ Correct Import
 const crypto = require("crypto");
 const Razorpay = require("razorpay");
 
@@ -23,7 +23,7 @@ const courses = require("../models/courses");
 router.post("/register", registerUser);
 router.post('/verify', verifyOTPAndRegister);
 router.post("/login", loginUser);
-
+router.post("/resendOTP", resendOTP);
 router.post("/sendResetOTP", sendResetOTP);
 router.post("/verifyResetOTP", verifyResetOTP);
 router.post("/resetPass", resetPass);
